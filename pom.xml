@@ -3,12 +3,12 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.gigaspaces</groupId>
 	<artifactId>mongo-datasource</artifactId>
-	<version>10.0.1-SNAPSHOT</version>
+	<version>10.0.1-11840-RELEASE</version>
 	<packaging>jar</packaging>
 
 	<properties>
 		<junitVersion>4.8.2</junitVersion>
-		<gsVersion>10.0.1-SNAPSHOT</gsVersion>
+		<gsVersion>10.0.1-11840-RELEASE</gsVersion>
 	</properties>
 
 	<repositories>		
