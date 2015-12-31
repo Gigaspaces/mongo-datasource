@@ -50,12 +50,7 @@ public class MongoDBController {
 			startCluster();
 		}
 
-		try {
-			client = new MongoClient(LOCALHOST, PORT);
-
-		} catch (UnknownHostException e) {
-			throw new AssertionError(e);
-		}
+		client = new MongoClient(LOCALHOST, PORT);
 
 		client.getDB(QA_DB);
 	}
@@ -87,25 +82,21 @@ public class MongoDBController {
 	}
 
 	private void initialize() throws AssertionError {
-		try {
-			client = new MongoClient(LOCALHOST, PORT);
+		client = new MongoClient(LOCALHOST, PORT);
 
-			DB adminDB = client.getDB("admin");
+		DB adminDB = client.getDB("admin");
 
-			CommandResult result = adminDB.command(new BasicDBObject(
-					"listShards", 1));
-			BasicDBList list = (BasicDBList) result.get("shards");
-			if (list.size() == 0) {
-				result = adminDB.command(new BasicDBObject("addShard",
-						"127.0.0.1:27019"));
-				result = adminDB.command(new BasicDBObject("addShard",
-						"127.0.0.1:27020"));
-				result = adminDB.command(new BasicDBObject("enableSharding",
-						QA_DB));
-			}
-		} catch (UnknownHostException e) {
-			throw new AssertionError(e);
-		}
+		CommandResult result = adminDB.command(new BasicDBObject(
+                "listShards", 1));
+		BasicDBList list = (BasicDBList) result.get("shards");
+		if (list.size() == 0) {
+            result = adminDB.command(new BasicDBObject("addShard",
+                    "127.0.0.1:27019"));
+            result = adminDB.command(new BasicDBObject("addShard",
+                    "127.0.0.1:27020"));
+            result = adminDB.command(new BasicDBObject("enableSharding",
+                    QA_DB));
+        }
 	}
 
 	public String createDirectory(String path) {

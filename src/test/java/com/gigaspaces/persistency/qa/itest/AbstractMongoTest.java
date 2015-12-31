@@ -89,11 +89,7 @@ public abstract class AbstractMongoTest {
 			String dbName) {
 
 		ServerAddress addr = null;
-		try {
-			addr = new ServerAddress(LOCALHOST, PORT);
-		} catch (UnknownHostException e) {
-			throw new AssertionError(e);
-		}
+		addr = new ServerAddress(LOCALHOST, PORT);
 
 		MongoClient config = new MongoClient(addr);
 

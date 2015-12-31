@@ -84,6 +84,6 @@ public class IndexBuilder {
 			key = BasicDBObjectBuilder.start(routing, 1).get();
 		}
 		
-		c.ensureIndex(key, option.get());	
+		c.createIndex(key, option.get());
 	}
 }
