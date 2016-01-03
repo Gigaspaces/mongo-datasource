@@ -1,7 +1,6 @@
 package com.gigaspaces.persistency.qa.itest;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -16,7 +15,6 @@ import com.gigaspaces.metadata.index.SpaceIndexType;
 import com.gigaspaces.persistency.MongoSpaceSynchronizationEndpoint;
 import com.mongodb.MongoClient;
 import com.mongodb.ServerAddress;
-import com.mongodb.WriteConcern;
 import com.gigaspaces.persistency.MongoClientConnector;
 import com.gigaspaces.persistency.MongoClientConnectorConfigurer;
 import com.gigaspaces.persistency.MongoSpaceDataSource;
@@ -89,11 +87,7 @@ public abstract class AbstractMongoTest {
 			String dbName) {
 
 		ServerAddress addr = null;
-		try {
-			addr = new ServerAddress(LOCALHOST, PORT);
-		} catch (UnknownHostException e) {
-			throw new AssertionError(e);
-		}
+		addr = new ServerAddress(LOCALHOST, PORT);
 
 		MongoClient config = new MongoClient(addr);
 
