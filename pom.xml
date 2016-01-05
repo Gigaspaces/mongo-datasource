@@ -55,6 +55,7 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>${junitVersion}</version>
+			<scope>test</scope>
 		</dependency>
 		<!-- mongo embedded server implementation for testing -->
 		<dependency>
@@ -107,6 +108,24 @@
 							<goal>test-jar</goal>
 						</goals>
 						<phase>package</phase>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.3</version>
+				<configuration>
+					<descriptors>
+						<descriptor>src/main/assembly/package.xml</descriptor>
+					</descriptors>
+					<finalName>${project.artifactId}</finalName>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>assembly</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>
