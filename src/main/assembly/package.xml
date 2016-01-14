@@ -19,7 +19,7 @@
             <directory>${project.build.directory}/dependency</directory>
             <outputDirectory>/lib/optional/datasource/mongo</outputDirectory>
             <includes>
-                <include>antlr-runtime-*</include>
+                <include>antlr4-runtime-*</include>
             </includes>
         </fileSet>
     </fileSets>
