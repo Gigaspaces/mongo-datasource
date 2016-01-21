@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.gigaspaces</groupId>
 	<artifactId>mongo-datasource</artifactId>
-	<version>11.0.0-SNAPSHOT</version>
+	<version>11.0.0-14710-817-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<properties>
@@ -44,7 +44,7 @@
 		<dependency>
                    	<groupId>org.antlr</groupId>
                    	<artifactId>antlr4-runtime</artifactId>
-                   	<version>4.5.1</version>
+                   	<version>4.0</version>
                 </dependency>
 
 		<dependency>
@@ -211,11 +211,11 @@
 				                          				</includes>
 			                        				</resource>
 			                        				<resource>
-			                          					<description>Copy antlr-runtime-4.5.1.jar to lib/optional/datasource/mongo</description>
+			                          					<description>Copy antlr-runtime-4.0.jar to lib/optional/datasource/mongo</description>
 			                          					<targetPath>${libDir}/optional/datasource/mongo</targetPath>
 			                          					<directory>${basedir}/target/dependency</directory>
 			                          					<includes>
-			                            						<include>antlr4-runtime-4.5.1.jar</include>
+			                            						<include>antlr4-runtime-4.0.jar</include>
 			                          					</includes>
 			                		 			</resource>
 			                      				</resources>
