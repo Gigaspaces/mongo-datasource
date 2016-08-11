@@ -70,6 +70,14 @@ public class PojoRepository {
 
 		return procedureCache.setterMethodFor(setter);
 	}
+	
+	public ISetterMethod<Object> getSetterSafe(Class<?> type, String property) {
+        Method setter = getPojoDescriptor(type).getSetters().get(property);
+        if (setter == null) {
+            return null;
+        }
+        return procedureCache.setterMethodFor(setter);
+    }
 
 	/**
 	 * @param type

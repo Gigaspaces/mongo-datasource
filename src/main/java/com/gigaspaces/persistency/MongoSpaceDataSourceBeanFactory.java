@@ -31,8 +31,13 @@ public class MongoSpaceDataSourceBeanFactory implements
 	public void setMongoClientConnector(MongoClientConnector mongoClientConnector) {
 		configurer.mongoClientConnector(mongoClientConnector);
 	}
+	
+	public void setReloadPojoSchema(boolean reloadPojoSchema) {
+        configurer.reloadPojoSchema(reloadPojoSchema);
+    }
 
-	public void destroy() throws Exception {
+	@Override
+    public void destroy() throws Exception {
 		mongoSpaceDataSource.close();
 	}
 
@@ -40,19 +45,23 @@ public class MongoSpaceDataSourceBeanFactory implements
 		return new MongoSpaceDataSourceConfigurer();
 	}
 
-	public void afterPropertiesSet() throws Exception {
+	@Override
+    public void afterPropertiesSet() throws Exception {
 		this.mongoSpaceDataSource = configurer.create();
 	}
 
-	public MongoSpaceDataSource getObject() throws Exception {
+	@Override
+    public MongoSpaceDataSource getObject() throws Exception {
 		return mongoSpaceDataSource;
 	}
 
-	public Class<?> getObjectType() {
+	@Override
+    public Class<?> getObjectType() {
 		return MongoSpaceDataSource.class;
 	}
 
-	public boolean isSingleton() {
+	@Override
+    public boolean isSingleton() {
 		return true;
 	}
 

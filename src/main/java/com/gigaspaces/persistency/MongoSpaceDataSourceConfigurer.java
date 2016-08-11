@@ -21,7 +21,8 @@ public class MongoSpaceDataSourceConfigurer {
 
 	private MongoClientConnector mongoClientConnector;
     private ClusterInfo clusterInfo;
-
+    private boolean reloadPojoSchema;
+    
 	public MongoSpaceDataSourceConfigurer mongoClientConnector(MongoClientConnector mongoClientConnector) {
 		this.mongoClientConnector = mongoClientConnector;
 		return this;
@@ -31,8 +32,15 @@ public class MongoSpaceDataSourceConfigurer {
         this.clusterInfo = clusterInfo;
         return this;
     }
+    
+    public MongoSpaceDataSourceConfigurer reloadPojoSchema(boolean reloadPojoSchema) {
+        this.reloadPojoSchema = reloadPojoSchema;
+        return this;
+    }
 
     public MongoSpaceDataSource create() {
-		return new MongoSpaceDataSource(mongoClientConnector,clusterInfo);
+        MongoSpaceDataSource datasource = new MongoSpaceDataSource(mongoClientConnector, clusterInfo);
+        datasource.setReloadPojoSchema(reloadPojoSchema);
+        return datasource;
 	}
 }

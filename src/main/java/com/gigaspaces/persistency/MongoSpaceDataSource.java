@@ -45,6 +45,8 @@ public class MongoSpaceDataSource extends SpaceDataSource {
 
 	protected ClusterInfo clusterInfo;
 
+	private boolean reloadPojoSchema;
+	
 	public MongoSpaceDataSource(MongoClientConnector mongoClient, ClusterInfo clusterInfo) {
 
         if (mongoClient == null) {
@@ -76,7 +78,7 @@ public class MongoSpaceDataSource extends SpaceDataSource {
         if (logger.isDebugEnabled())
             logger.debug("MongoSpaceDataSource.initialMetadataLoad()");
 
-        Collection<SpaceTypeDescriptor> sortedCollection = mongoClient.loadMetadata();
+        Collection<SpaceTypeDescriptor> sortedCollection = mongoClient.loadMetadata(reloadPojoSchema);
 
         return new DataIteratorAdapter<SpaceTypeDescriptor>(sortedCollection.iterator());
     }
@@ -156,4 +158,12 @@ public class MongoSpaceDataSource extends SpaceDataSource {
 		
 		return new DefaultMongoDataIterator(results, idsQuery.getTypeDescriptor());
 	}
+
+    public boolean isReloadPojoSchema() {
+        return reloadPojoSchema;
+    }
+
+    public void setReloadPojoSchema(boolean reloadPojoSchema) {
+        this.reloadPojoSchema = reloadPojoSchema;
+    }
 }

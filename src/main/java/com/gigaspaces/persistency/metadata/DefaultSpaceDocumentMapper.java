@@ -142,7 +142,8 @@ public class DefaultSpaceDocumentMapper implements
 		return type;
 	}
 
-	public Object toDocument(DBObject bson) {
+	@Override
+    public Object toDocument(DBObject bson) {
 
 		if (bson == null)
 			return null;
@@ -189,9 +190,12 @@ public class DefaultSpaceDocumentMapper implements
 				if (Constants.ID_PROPERTY.equals(property))
 					property = spaceTypeDescriptor.getIdPropertyName();
 
-				ISetterMethod<Object> setter = repository.getSetter(type,
+				ISetterMethod<Object> setter = repository.getSetterSafe(type,
 						property);
-
+				if (setter == null) {
+				    continue;
+				}
+				
 				Object val;
 				if (isArray) {
 					val = toExtractArray((BasicDBList) value,
@@ -254,7 +258,8 @@ public class DefaultSpaceDocumentMapper implements
 		return true;
 	}
 
-	public Object fromDBObject(Object value) {
+	@Override
+    public Object fromDBObject(Object value) {
 
 		if (value == null)
 			return null;
@@ -445,7 +450,8 @@ public class DefaultSpaceDocumentMapper implements
 		}
 	}
 
-	public DBObject toDBObject(Object document) {
+	@Override
+    public DBObject toDBObject(Object document) {
 
 		if (document == null)
 			return null;
@@ -515,7 +521,8 @@ public class DefaultSpaceDocumentMapper implements
 		return bson.get();
 	}
 
-	public Object toObject(Object property) {
+	@Override
+    public Object toObject(Object property) {
 	    if(property == null)
 	        return null;
 
@@ -529,7 +536,7 @@ public class DefaultSpaceDocumentMapper implements
 			return toSpecialType(property);
 		case TYPE_OBJECT:
 		    if(property instanceof SpaceDocument)
-                return toDBObject((SpaceDocument)property);
+                return toDBObject(property);
             else
                 if (property instanceof Class)
                 return toSpecialType(property);

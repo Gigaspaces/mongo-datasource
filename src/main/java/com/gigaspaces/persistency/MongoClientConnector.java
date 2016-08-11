@@ -16,7 +16,10 @@
 package com.gigaspaces.persistency;
 
 import com.gigaspaces.document.SpaceDocument;
+import com.gigaspaces.internal.client.spaceproxy.metadata.TypeDescFactory;
 import com.gigaspaces.internal.io.IOUtils;
+import com.gigaspaces.internal.metadata.ITypeDesc;
+import com.gigaspaces.metadata.SpaceMetadataException;
 import com.gigaspaces.metadata.SpaceTypeDescriptor;
 import com.gigaspaces.metadata.SpaceTypeDescriptorVersionedSerializationUtils;
 import com.gigaspaces.persistency.error.SpaceMongoDataSourceException;
@@ -28,12 +31,10 @@ import com.gigaspaces.persistency.metadata.SpaceDocumentMapper;
 import com.gigaspaces.sync.AddIndexData;
 import com.gigaspaces.sync.DataSyncOperation;
 import com.gigaspaces.sync.IntroduceTypeData;
+import com.j_spaces.kernel.ClassLoaderHelper;
 import com.mongodb.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openspaces.core.cluster.ClusterInfo;
-import org.openspaces.core.cluster.ClusterInfoAware;
-import org.openspaces.core.cluster.ClusterInfoContext;
 import org.openspaces.persistency.support.SpaceTypeDescriptorContainer;
 import org.openspaces.persistency.support.TypeDescriptorUtils;
 
@@ -48,7 +49,7 @@ import java.util.concurrent.Future;
  * 
  * @author Shadi Massalha
  */
-public class MongoClientConnector{
+public class MongoClientConnector {
 
 	private static final String DOLLAR_SIGN = "__d_s__";
 	private static final String TYPE_DESCRIPTOR_FIELD_NAME = "value";
@@ -188,18 +189,20 @@ public class MongoClientConnector{
 		}*/
 	}
 
-	public Collection<SpaceTypeDescriptor> loadMetadata() {
+	public Collection<SpaceTypeDescriptor> loadMetadata(boolean reloadTypeDescriptors) {
 
 		DBCollection metadata = getCollection(METADATA_COLLECTION_NAME);
 
 		DBCursor cursor = metadata.find(new BasicDBObject());
 
+        TypeDescFactory typeDescFactory = new TypeDescFactory();
+        
 		while (cursor.hasNext()) {
 			DBObject type = cursor.next();
-
+			String typeName = (String) type.get(Constants.ID_PROPERTY);
 			Object b = type.get(TYPE_DESCRIPTOR_FIELD_NAME);
 
-			readMetadata(b);
+			readMetadata(typeName, b, typeDescFactory, reloadTypeDescriptors);
 		}
 
 		return getSortedTypes();
@@ -222,27 +225,54 @@ public class MongoClientConnector{
 				new SpaceTypeDescriptorContainer(typeDescriptor));
 	}
 
-	private void readMetadata(Object b) {
+	private void readMetadata(String typeName, Object b, TypeDescFactory typeDescFactory, boolean reloadTypeDescriptors) {
 		try {
-
-			ObjectInput in = new ClassLoaderAwareInputStream(new ByteArrayInputStream((byte[]) b));
-			Serializable typeDescWrapper = IOUtils.readObject(in);
-			SpaceTypeDescriptor typeDescriptor = SpaceTypeDescriptorVersionedSerializationUtils
-					.fromSerializableForm(typeDescWrapper);
+		    SpaceTypeDescriptor typeDescriptor = reloadTypeDescriptors ? loadOrCreate(typeName, b, typeDescFactory) : load(b);
+		    
 			indexBuilder.ensureIndexes(typeDescriptor);
 
 			cacheTypeDescriptor(typeDescriptor);
 
-		} catch (ClassNotFoundException e) {
-			logger.error(e);
-			throw new SpaceMongoDataSourceException("Failed to deserialize: "
-					+ b, e);
-		} catch (IOException e) {
-			logger.error(e);
-			throw new SpaceMongoDataSourceException("Failed to deserialize: "
-					+ b, e);
-		}
+        } catch (ClassNotFoundException e) {
+            logger.error(e);
+            throw new SpaceMongoDataSourceException("Failed to deserialize: " + b, e);
+        } catch (IOException e) {
+            logger.error(e);
+            throw new SpaceMongoDataSourceException("Failed to deserialize: " + b, e);
+        }
 	}
+	
+    private SpaceTypeDescriptor load(Object b) throws IOException, ClassNotFoundException {
+        ObjectInput in = null;
+        try {
+            in = new ClassLoaderAwareInputStream(new ByteArrayInputStream((byte[]) b));
+            Serializable typeDescWrapper = IOUtils.readObject(in);
+            return SpaceTypeDescriptorVersionedSerializationUtils.fromSerializableForm(typeDescWrapper);
+        } finally {
+            if (in != null) {
+                in.close();
+            }
+        }
+    }
+
+    private SpaceTypeDescriptor loadOrCreate(String typeName, Object b, TypeDescFactory typeDescFactory) throws IOException, ClassNotFoundException {
+        try {
+            SpaceTypeDescriptor persistedTypeDescriptor = load(b);
+            ITypeDesc latestTypeDescriptor = createSpaceTypeDescriptor(typeName, typeDescFactory);
+            if (persistedTypeDescriptor instanceof ITypeDesc && ((ITypeDesc) persistedTypeDescriptor).getChecksum() != latestTypeDescriptor.getChecksum()) {
+                return latestTypeDescriptor;
+            }
+            return persistedTypeDescriptor;
+        } catch (SpaceMetadataException e) {
+            logger.info("Failed to deserialize space type descriptor metadata. Try to create it from class type: " + typeName, e);
+            return createSpaceTypeDescriptor(typeName, typeDescFactory);
+        }
+    }
+
+    private ITypeDesc createSpaceTypeDescriptor(String typeName, TypeDescFactory typeDescFactory) throws ClassNotFoundException {
+        Class<?> type = ClassLoaderHelper.loadClass(typeName);
+        return typeDescFactory.createPojoTypeDesc(type, null, null);
+    }
 
 	public void ensureIndexes(AddIndexData addIndexData) {
 		indexBuilder.ensureIndexes(addIndexData);
