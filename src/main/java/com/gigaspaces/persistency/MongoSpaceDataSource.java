@@ -31,6 +31,7 @@ import org.openspaces.core.cluster.ClusterInfo;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * A MongoDB implementation of {@link com.gigaspaces.datasource.SpaceDataSource}
@@ -45,6 +46,8 @@ public class MongoSpaceDataSource extends SpaceDataSource {
 
 	protected ClusterInfo clusterInfo;
 
+	private boolean reloadPojoSchema;
+	
 	public MongoSpaceDataSource(MongoClientConnector mongoClient, ClusterInfo clusterInfo) {
 
         if (mongoClient == null) {
@@ -76,7 +79,7 @@ public class MongoSpaceDataSource extends SpaceDataSource {
         if (logger.isDebugEnabled())
             logger.debug("MongoSpaceDataSource.initialMetadataLoad()");
 
-        Collection<SpaceTypeDescriptor> sortedCollection = mongoClient.loadMetadata();
+        Collection<SpaceTypeDescriptor> sortedCollection = mongoClient.loadMetadata(reloadPojoSchema);
 
         return new DataIteratorAdapter<SpaceTypeDescriptor>(sortedCollection.iterator());
     }
@@ -90,20 +93,18 @@ public class MongoSpaceDataSource extends SpaceDataSource {
         return new MongoInitialDataLoadIterator(this,mongoClient);
     }
 
-    public DBObject getInitialQuery(SpaceTypeDescriptor typeDescriptor)
-    {
+    public DBObject getInitialQuery(SpaceTypeDescriptor typeDescriptor) {
         DBObject query = new BasicDBObject();
         String routingPropertyName = typeDescriptor.getRoutingPropertyName();
-        if(clusterInfo != null && clusterInfo.getNumberOfInstances() > 1 && routingPropertyName != null)
-        {
+        if (clusterInfo != null && clusterInfo.getNumberOfInstances() > 1 && routingPropertyName != null) {
             SpacePropertyDescriptor routingPropDesc = typeDescriptor.getFixedProperty(routingPropertyName);
-            if(Integer.class.isAssignableFrom(routingPropDesc.getType()))
-            {
-                ArrayList l = new ArrayList();
+            if (Integer.class.isAssignableFrom(routingPropDesc.getType())) {
+                List<Integer> l = new ArrayList<Integer>(2);
                 l.add(clusterInfo.getNumberOfInstances());
-                l.add(clusterInfo.getInstanceId()-1);
+                l.add(clusterInfo.getInstanceId() - 1);
 
-                query.put(routingPropertyName, new BasicDBObject("$mod", l));
+                String queryProperty = routingPropertyName.equals(typeDescriptor.getIdPropertyName()) ? Constants.ID_PROPERTY : routingPropertyName;
+                query.put(queryProperty, new BasicDBObject("$mod", l));
             }
         }
 
@@ -156,4 +157,12 @@ public class MongoSpaceDataSource extends SpaceDataSource {
 		
 		return new DefaultMongoDataIterator(results, idsQuery.getTypeDescriptor());
 	}
+
+    public boolean isReloadPojoSchema() {
+        return reloadPojoSchema;
+    }
+
+    public void setReloadPojoSchema(boolean reloadPojoSchema) {
+        this.reloadPojoSchema = reloadPojoSchema;
+    }
 }
