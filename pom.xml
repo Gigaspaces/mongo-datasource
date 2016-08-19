@@ -9,6 +9,7 @@
 	<properties>
 		<junitVersion>4.8.2</junitVersion>
 		<gsVersion>10.2.1-14000-RELEASE</gsVersion>
+        <javaVersion>1.8</javaVersion>
 	</properties>
 
 	<repositories>		
@@ -83,8 +84,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.3.2</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<source>${javaVersion}</source>
+					<target>${javaVersion}</target>
 				</configuration>
 			</plugin>
 			<plugin>

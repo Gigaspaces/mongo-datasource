@@ -15,21 +15,16 @@
  *******************************************************************************/
 package com.gigaspaces.persistency.datasource;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-
-import com.gigaspaces.annotation.pojo.SpaceProperty;
 import com.gigaspaces.datasource.DataIterator;
-import com.gigaspaces.metadata.SpacePropertyDescriptor;
 import com.gigaspaces.metadata.SpaceTypeDescriptor;
 import com.gigaspaces.persistency.MongoClientConnector;
 import com.gigaspaces.persistency.MongoSpaceDataSource;
 import com.gigaspaces.persistency.metadata.DefaultSpaceDocumentMapper;
 import com.gigaspaces.persistency.metadata.SpaceDocumentMapper;
-import com.mongodb.BasicDBObject;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import org.openspaces.core.cluster.ClusterInfo;
+
+import java.util.Iterator;
 
 /**
  * @author Shadi Massalha
@@ -52,11 +47,13 @@ public class MongoInitialDataLoadIterator implements DataIterator<Object> {
 		this.currentCursor = nextDataIterator();
 	}
 
+    @Override
     public void close() {
         if (currentCursor != null)
             currentCursor.close();
     }
 
+    @Override
     public boolean hasNext() {
 
 		while (currentCursor != null && !currentCursor.hasNext()) {
@@ -65,11 +62,13 @@ public class MongoInitialDataLoadIterator implements DataIterator<Object> {
 		return currentCursor != null;
 	}
 
-	public Object next() {
+	@Override
+    public Object next() {
 		return pojoMapper.toDocument(currentCursor.next());
 	}
 
-	public void remove() {
+	@Override
+    public void remove() {
 		currentCursor.remove();
 	}
 

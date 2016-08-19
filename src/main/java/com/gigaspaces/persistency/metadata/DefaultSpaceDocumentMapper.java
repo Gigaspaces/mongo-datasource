@@ -15,32 +15,6 @@
  *******************************************************************************/
 package com.gigaspaces.persistency.metadata;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.URI;
-import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import org.apache.commons.lang.LocaleUtils;
-import org.bson.types.ObjectId;
-
 import com.gigaspaces.document.SpaceDocument;
 import com.gigaspaces.internal.reflection.ISetterMethod;
 import com.gigaspaces.metadata.SpaceDocumentSupport;
@@ -50,6 +24,23 @@ import com.gigaspaces.persistency.error.SpaceMongoException;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObjectBuilder;
 import com.mongodb.DBObject;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.bson.types.ObjectId;
+
+import java.io.*;
+import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.URI;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.util.*;
 
 /**
  * class helper to map from mongo document type to SpaceDocument and vice versa
@@ -74,6 +65,10 @@ public class DefaultSpaceDocumentMapper implements
 	private static final byte TYPE_BIGINT = Byte.MIN_VALUE + 11;
 	private static final byte TYPE_BIGDECIMAL = Byte.MIN_VALUE + 12;
 	private static final byte TYPE_BYTEARRAY = Byte.MIN_VALUE + 13;
+    private static final byte TYPE_LOCAL_DATE = Byte.MIN_VALUE + 14;
+    private static final byte TYPE_LOCAL_TIME = Byte.MIN_VALUE + 15;
+    private static final byte TYPE_LOCAL_DATE_TIME = Byte.MIN_VALUE + 16;
+    private static final byte TYPE_ZONED_DATE_TIME = Byte.MIN_VALUE + 17;
 	private static final byte TYPE_ARRAY = Byte.MAX_VALUE - 1;
 	private static final byte TYPE_COLLECTION = Byte.MAX_VALUE - 2;
 	private static final byte TYPE_MAP = Byte.MAX_VALUE - 3;
@@ -83,6 +78,8 @@ public class DefaultSpaceDocumentMapper implements
 
 	private static final Map<Class<?>, Byte> typeCodes = new HashMap<Class<?>, Byte>();
 
+	private static final Log LOG = LogFactory.getLog(DefaultSpaceDocumentMapper.class);
+	
 	static {
 		typeCodes.put(Boolean.class, TYPE_BOOLEAN);
 		typeCodes.put(Byte.class, TYPE_BYTE);
@@ -100,6 +97,10 @@ public class DefaultSpaceDocumentMapper implements
 		typeCodes.put(BigDecimal.class, TYPE_BIGDECIMAL);
 		typeCodes.put(byte[].class, TYPE_BYTEARRAY);
 		typeCodes.put(ObjectId.class, TYPE_OBJECTID);
+		typeCodes.put(LocalDate.class, TYPE_LOCAL_DATE);
+        typeCodes.put(LocalTime.class, TYPE_LOCAL_TIME);
+        typeCodes.put(LocalDateTime.class, TYPE_LOCAL_DATE_TIME);
+        typeCodes.put(ZonedDateTime.class, TYPE_ZONED_DATE_TIME);
 
 	}
 
@@ -190,9 +191,9 @@ public class DefaultSpaceDocumentMapper implements
 				if (Constants.ID_PROPERTY.equals(property))
 					property = spaceTypeDescriptor.getIdPropertyName();
 
-				ISetterMethod<Object> setter = repository.getSetterSafe(type,
-						property);
+				ISetterMethod<Object> setter = repository.getSetterSafe(type, property);
 				if (setter == null) {
+				    LOG.trace("'" + property + "' property has not been found in " + type.getName() + " class");
 				    continue;
 				}
 				
@@ -523,56 +524,59 @@ public class DefaultSpaceDocumentMapper implements
 
 	@Override
     public Object toObject(Object property) {
-	    if(property == null)
-	        return null;
+        if (property == null)
+            return null;
 
-		switch (type(property.getClass())) {
+        switch (type(property.getClass())) {
 
-		case TYPE_CHAR:
-		case TYPE_FLOAT:
-		case TYPE_BYTE:
-		case TYPE_BIGDECIMAL:
-		case TYPE_BIGINT:
-			return toSpecialType(property);
-		case TYPE_OBJECT:
-		    if(property instanceof SpaceDocument)
-                return toDBObject(property);
-            else
-                if (property instanceof Class)
+            case TYPE_CHAR:
+            case TYPE_FLOAT:
+            case TYPE_BYTE:
+            case TYPE_BIGDECIMAL:
+            case TYPE_BIGINT:
+            case TYPE_LOCAL_DATE:
+            case TYPE_LOCAL_TIME:
+            case TYPE_LOCAL_DATE_TIME:
+            case TYPE_ZONED_DATE_TIME:
                 return toSpecialType(property);
-            else if (property instanceof Locale)
-                return toSpecialType(property);
-            else if (property instanceof URI)
-                return toSpecialType(property);
-            else if (property instanceof Timestamp)
-                return toSpecialType(property);
+            case TYPE_OBJECT:
+                if (property instanceof SpaceDocument)
+                    return toDBObject(property);
+                else if (property instanceof Class)
+                    return toSpecialType(property);
+                else if (property instanceof Locale)
+                    return toSpecialType(property);
+                else if (property instanceof URI)
+                    return toSpecialType(property);
+                else if (property instanceof Timestamp)
+                    return toSpecialType(property);
 
-			if (!(property instanceof Serializable))
-				return toDBObject(property);
+                if (!(property instanceof Serializable))
+                    return toDBObject(property);
 
-			byte[] result = serializeObject(property);
+                byte[] result = serializeObject(property);
 
-			BasicDBObjectBuilder blob = BasicDBObjectBuilder.start();
+                BasicDBObjectBuilder blob = BasicDBObjectBuilder.start();
 
-			blob.add(Constants.TYPE, Constants.CUSTOM_BINARY);
+                blob.add(Constants.TYPE, Constants.CUSTOM_BINARY);
 
-			blob.add(Constants.VALUE, result);
+                blob.add(Constants.VALUE, result);
 
-			blob.add(Constants.HASH, Arrays.hashCode(result));
+                blob.add(Constants.HASH, Arrays.hashCode(result));
 
-			return blob.get();
-		case TYPE_ENUM:
-			return toEnum(property);
-		case TYPE_ARRAY:
-			return toArray(property);
-		case TYPE_COLLECTION:
-			return toCollection(property);
-		case TYPE_MAP:
-			return toMap(property);
-		default:
-			return property;
-		}
-	}
+                return blob.get();
+            case TYPE_ENUM:
+                return toEnum(property);
+            case TYPE_ARRAY:
+                return toArray(property);
+            case TYPE_COLLECTION:
+                return toCollection(property);
+            case TYPE_MAP:
+                return toMap(property);
+            default:
+                return property;
+        }
+    }
 
 	private byte[] serializeObject(Object property) {
 
@@ -657,8 +661,7 @@ public class DefaultSpaceDocumentMapper implements
 	}
 
 	private void setArray(BasicDBList builder, Object obj) {
-	    if(obj == null)
-	    {
+	    if (obj == null) {
 	        builder.add(null);
 	        return;
 	    }
@@ -694,89 +697,88 @@ public class DefaultSpaceDocumentMapper implements
 				+ value);
 	}
 
-	private Object fromSpecialType(DBObject value) {
-		String type = (String) value.get(Constants.TYPE);
-		String val = (String) value.get(Constants.VALUE);
+	 private Object fromSpecialType(DBObject value) {
+	        String type = (String) value.get(Constants.TYPE);
+	        String val = (String) value.get(Constants.VALUE);
 
-		if (BigInteger.class.getName().equals(type))
-			return new BigInteger(val);
-		else if (BigDecimal.class.getName().equals(type))
-			return new BigDecimal(val);
-		else if (Byte.class.getName().equals(type))
-			return Byte.valueOf(val);
-		else if (Float.class.getName().equals(type))
-			return Float.valueOf(val);
-		else if (Character.class.getName().equals(type))
-			return toCharacter(val);
-		else if (Class.class.getName().equals(type))
-            return toClass(val);
-        else if (Locale.class.getName().equals(type))
-            return toLocale(val);
-        else if (URI.class.getName().equals(type))
-            return URI.create(val);
-        else if (Timestamp.class.getName().equals(type))
-            return Timestamp.valueOf(val);
+	        if (BigInteger.class.getName().equals(type))
+	            return new BigInteger(val);
+	        else if (BigDecimal.class.getName().equals(type))
+	            return new BigDecimal(val);
+	        else if (Byte.class.getName().equals(type))
+	            return Byte.valueOf(val);
+	        else if (Float.class.getName().equals(type))
+	            return Float.valueOf(val);
+	        else if (Character.class.getName().equals(type))
+	            return toCharacter(val);
+	        else if (Class.class.getName().equals(type))
+	            return toClass(val);
+	        else if (Locale.class.getName().equals(type))
+	            return toLocale(val);
+	        else if (URI.class.getName().equals(type))
+	            return URI.create(val);
+	        else if (Timestamp.class.getName().equals(type))
+	            return Timestamp.valueOf(val);
+	        else if (LocalDate.class.getName().equals(type))
+	            return LocalDate.parse(val);
+	        else if (LocalTime.class.getName().equals(type))
+	            return LocalTime.parse(val);
+	        else if (LocalDateTime.class.getName().equals(type))
+	            return LocalDateTime.parse(val);
+	        else if (ZonedDateTime.class.getName().equals(type))
+	            return ZonedDateTime.parse(val);
 
-		throw new IllegalArgumentException("unkown value: " + value);
-	}
+	        throw new IllegalArgumentException("unkown value: " + value);
+	    }
 
 	/**
      * Convert string representation to Locale object
      * @param str
      * @return
      */
-    private Locale toLocale(String str)
-    {
-        if(str == null)
+    private Locale toLocale(String str) {
+        if (str == null)
             return null;
-        
+
         String[] split = str.split("_");
-        if(split.length == 0)
+        if (split.length == 0)
             return new Locale("");
-        
-        else if(split.length == 1)
+
+        else if (split.length == 1)
             return new Locale(split[0]);
-        
-        else if(split.length == 2)
-            return new Locale(split[0],split[1]);
-        
+
+        else if (split.length == 2)
+            return new Locale(split[0], split[1]);
+
         // ignore the rest - will be restored by the Locale constructor
         else
-            return new Locale(split[0],split[1],split[2]);
-        
+            return new Locale(split[0], split[1], split[2]);
+
     }
 
-    private Class toClass(Object value)
-    {
+    private Class toClass(Object value) {
         if (value == null)
             return null;
 
         if (value instanceof String)
-            try
-            {
+            try {
                 return Class.forName((String) value);
-            }
-            catch (ClassNotFoundException e)
-            {
+            } catch (ClassNotFoundException e) {
                 throw new IllegalArgumentException(e);
             }
 
-        throw new IllegalArgumentException("invalid value for Character: "
-                + value);
+        throw new IllegalArgumentException("invalid value for Character: " + value);
     }
-    private DBObject toSpecialType(Object property)
-    {
+
+    private DBObject toSpecialType(Object property) {
         BasicDBObjectBuilder document = BasicDBObjectBuilder.start();
 
         String toString = toString(property);
 
-        return document.add(Constants.TYPE, property.getClass().getName())
-                .add(Constants.VALUE, toString)
-                .get();
+        return document.add(Constants.TYPE, property.getClass().getName()).add(Constants.VALUE, toString).get();
     }
 
-    private String toString(Object property)
-    {
+    private String toString(Object property) {
         if (property instanceof Class)
             return ((Class) property).getName();
         return property.toString();
