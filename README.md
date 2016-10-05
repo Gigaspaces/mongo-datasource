@@ -33,7 +33,7 @@ Repositories
 		<repository>
 			<id>org.openspaces</id>
 			<name>OpenSpaces</name>
-			<url>http://maven-repository.openspaces.org</url>
+			<url>http://maven-repository.openspaces.gigaspaces.org</url>
 		</repository>
 
 	</repositories>
